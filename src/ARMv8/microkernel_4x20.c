@@ -52,10 +52,12 @@ inline void gemm_ukernel_Cresident_SIMD_4x20(int mr, int nr, int kc, DTYPE *Ar, 
 //   - Br packed by rows, with leading dimension nr = 20
 
   if (kc == 0) return;
+  const int MR = 4; 
+  const int NR = 20; 
   int       i, j, pr, baseA = 0, baseB = 0, ldCt = MR, Amr, Bnr;
   vregister Cr0_0, Cr0_1, Cr0_2, Cr0_3, Cr0_4, Cr0_5, Cr0_6, Cr0_7, Cr0_8, Cr0_9, Cr0_10, Cr0_11, Cr0_12, Cr0_13, Cr0_14, Cr0_15, Cr0_16, Cr0_17, Cr0_18, Cr0_19, A0_0, A0_1, A0_2, A0_3, A0_4, A0_5, A0_6, A0_7, A0_8, A0_9, A0_10, A0_11, A0_12, A0_13, A0_14, A0_15, A0_16, A0_17, A0_18, A0_19;
   vregister ar0, br0, br1, br2, br3, br4; 
-  DTYPE zero = 0.0, one = 1.0, Ctmp[MR * NR], *Aptr, *Bptr; 
+  DTYPE zero = 0.0, Ctmp[MR * NR], *Aptr, *Bptr; 
 
 
   vinit(Cr0_0); vinit(Cr0_1); vinit(Cr0_2); vinit(Cr0_3); vinit(Cr0_4); vinit(Cr0_5); vinit(Cr0_6); vinit(Cr0_7); vinit(Cr0_8); vinit(Cr0_9); vinit(Cr0_10); vinit(Cr0_11); vinit(Cr0_12); vinit(Cr0_13); vinit(Cr0_14); vinit(Cr0_15); vinit(Cr0_16); vinit(Cr0_17); vinit(Cr0_18); vinit(Cr0_19); 

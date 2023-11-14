@@ -24,14 +24,14 @@ BETA=0.0
 #-------------------------------------------------------------
 # Execution Minimum Time
 #-------------------------------------------------------------
-TIMIN=10.0 
+TIMIN=1.0 
 #-------------------------------------------------------------
 
 
 #-------------------------------------------------------------
 # Enable (T) | Disable (F) Testing Mode
 #-------------------------------------------------------------
-TEST=N
+TEST=T
 #-------------------------------------------------------------
 
 
@@ -42,10 +42,10 @@ VISUAL=0
 #-------------------------------------------------------------
 
 #-------------------------------------------------------------
-# Enable (0) | Disable (1) Visual Mode
+# Micro-kernel size. Must be divisible by 4
 #-------------------------------------------------------------
-MR=8
-NR=12
+MR=20
+NR=4
 #-------------------------------------------------------------
 
 if $(echo $1 | grep -q "batch"); then 
@@ -54,9 +54,7 @@ else
 	source batch/null.sh
 fi
 
-#folder=$(echo $2 | cut -f1 -d"/")
-#echo ${folder}
-#mkdir -p ${folder}
+mkdir -p output
 
 taskset -c 0 ./build/test_gemm.x "" $ORDERA $ORDERB $ORDERC $TRANSA $TRANSB $ALPHA $BETA $MMIN $MMAX $MSTEP $NMIN $NMAX $NSTEP $KMIN $KMAX $KSTEP $VISUAL $TIMIN $TEST $MR $NR $1 $2
 

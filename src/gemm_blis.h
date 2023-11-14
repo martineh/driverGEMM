@@ -4,7 +4,7 @@
 #include "dtypes.h"
 
 #include <arm_neon.h>
-#include "ARMv8/gemm_blis_neon_fp32.h"
+#include "ARMv8/microkernel.h"
 
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
@@ -20,7 +20,7 @@
 #define Mrow(a1,a2)  M[ (a1)*(ldM)+(a2) ]
 
 void gemm_blis_B3A2C0( char, char, char, char, char, size_t, size_t, size_t, DTYPE, DTYPE *, size_t, DTYPE *, size_t, DTYPE, DTYPE *, size_t, 
-		       DTYPE *, DTYPE *, size_t, size_t, size_t, void *, int, int);
+		       DTYPE *, DTYPE *, size_t, size_t, size_t, ukernel_SIMD, int, int);
 
 void gemm_base_Cresident( char, int, int, int, DTYPE, DTYPE *, int, DTYPE *, int, DTYPE, DTYPE *, int );
 

@@ -32,10 +32,12 @@ inline void gemm_ukernel_Cresident_SIMD_4x4(int mr, int nr, int kc, DTYPE *Ar, i
 //   - Br packed by rows, with leading dimension nr = 4
 
   if (kc == 0) return;
+  const int MR = 4; 
+  const int NR = 4; 
   int       i, j, pr, baseA = 0, baseB = 0, ldCt = MR, Amr, Bnr;
   vregister Cr0_0, Cr0_1, Cr0_2, Cr0_3, A0_0, A0_1, A0_2, A0_3;
   vregister ar0, br0; 
-  DTYPE zero = 0.0, one = 1.0, Ctmp[MR * NR], *Aptr, *Bptr; 
+  DTYPE zero = 0.0, Ctmp[MR * NR], *Aptr, *Bptr; 
 
 
   vinit(Cr0_0); vinit(Cr0_1); vinit(Cr0_2); vinit(Cr0_3); 

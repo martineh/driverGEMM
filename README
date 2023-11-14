@@ -1,0 +1,14 @@
+
+GEMM Driver
+
+Usage: 
+
+ [1] Compile: make
+ [2] Execute: ./run_gemm.sh <CNN model> <CSV Output>
+
+
+ Usage Example:
+   ./run_gemm.sh cnn_models/resnet50.blis.dat output/out.csv
+
+ Please, modify "run_gemm.sh" file with your run configuration preference (like micro-kernel size ).
+ 

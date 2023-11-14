@@ -8,7 +8,7 @@ CLINKER  =  gcc
 
 OBJDIR = build
 BIN    = test_gemm.x
-_OBJ   = gemm_blis.o inutils.o sutils.o test_gemm.o model_level.o 
+_OBJ   = model_level.o gemm_blis.o inutils.o sutils.o test_gemm.o
 
 #------------------------------------------
 #| PATHS CONFIGURE                        |
@@ -26,11 +26,11 @@ vpath %.h ./src/ARMv8
 #------------------------------------------
 #| COMPILER FLAGS                         |
 #------------------------------------------
-MODE=-DFAMILY
-
-#Dependes Arquitecture Mode
+DTYPE = -DFP32
+MODE  = -DFAMILY
 SIMD  = -DARMv8
-FLAGS = -O3 -march=armv8-a+simd+fp -fopenmp -Wall -Wunused-function
+FLAGS = -O3 -march=armv8-a+simd+fp -Wall 
+LIBS  = -lm
 
 OBJ = $(patsubst %, $(OBJDIR)/%, $(_OBJ))
 
@@ -44,8 +44,14 @@ OPTFLAGS = $(FLAGS) -DCHECK $(MODE) $(SIMD) $(DTYPE)
 
 default: $(OBJDIR)/$(BIN)
 
-$(OBJDIR)/%.o:%.c
+$(OBJDIR)/model_level.o: src/modelLevel/model_level.c
 	@mkdir -p $(OBJDIR)
+	$(CC) $(CFLAGS) $(OPTFLAGS) -c -o $@ $< $(INCLUDE) $(LIBS)
+
+$(OBJDIR)/%.o: ./src/ARMv8/%.c
+	$(CC) $(CFLAGS) $(OPTFLAGS) -c -o $@ $< $(INCLUDE) $(LIBS)
+
+$(OBJDIR)/%.o:%.c
 	$(CC) $(CFLAGS) $(OPTFLAGS) -c -o $@ $< $(INCLUDE) $(LIBS)
 
 $(OBJDIR)/$(BIN): $(OBJ) 

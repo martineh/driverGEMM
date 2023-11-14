@@ -40,7 +40,7 @@ void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
 		       DTYPE beta,  DTYPE *C, size_t ldC, 
 		       DTYPE *Ac, DTYPE *Bc, 
                        size_t MC, size_t NC, size_t KC,
-		       void *, int MR, int NR) {
+		       ukernel_SIMD ukernel, int MR, int NR) {
 
 
   size_t    ic, jc, pc, mc, nc, kc, ir, jr, mr, nr; 
@@ -106,7 +106,7 @@ void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
 	    else
               Cptr = &Crow(ic+ir,jc+jr);
 
-	    gemm_ukernel_Cresident_SIMD_8x12(mr, nr, kc, &Ac[ir*kc], ldA, &Bc[jr*kc], ldB, Cptrh, ldC, orderC, betaI);
+	    ukernel(mr, nr, kc, &Ac[ir*kc], ldA, &Bc[jr*kc], ldB, Cptr, ldC, orderC, betaI);
 
           }
 	  

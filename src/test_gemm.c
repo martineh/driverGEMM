@@ -35,14 +35,19 @@
 #include <math.h>
 #include <string.h>
 
+#include "ARMv8/microkernel.h"
 #include "dtypes.h"
 #include "gemm_blis.h"
 #include "inutils.h"
 #include "colors.h"
-#include "../modelLevel/model_level.h"
+#include "modelLevel/model_level.h"
 
 #define dabs(a)      ( (a) > 0.0 ? (a) : -(a) )
-#define min(a,b)     ( (a) > (b) ? (b) : (a) )
+
+#ifndef min
+  #define min(a,b)     ( (a) > (b) ? (b) : (a) )
+#endif
+
 #define Acol(a1,a2)  A[ (a2)*(ldA)+(a1) ]
 #define Bcol(a1,a2)  B[ (a2)*(ldB)+(a1) ]
 #define Ccol(a1,a2)  C[ (a2)*(ldC)+(a1) ]
@@ -96,7 +101,7 @@ int main(int argc, char *argv[]) {
          visual, ldA, ldB, ldC;
   size_t m, n, k, mc, nc, kc, mmin, mmax, mstep, nmin, nmax, nstep, kmin, kmax, kstep; 
 
-  int MR, NR;
+  int KR, MR, NR;
 
   #if defined(FP16)
     errorthd = 1.0e-3;
@@ -109,50 +114,80 @@ int main(int argc, char *argv[]) {
 
   sprintf(variant, "FAMILY");  
 
-  orderA   = argv[2][0];
-  orderB   = argv[3][0];
-  orderC   = argv[4][0];
+  orderA = argv[2][0];
+  orderB = argv[3][0];
+  orderC = argv[4][0];
   
-  transA   = argv[5][0];
-  transB   = argv[6][0];
+  transA = argv[5][0];
+  transB = argv[6][0];
   
-  alpha    = atof(argv[7]);
-  beta     = atof(argv[8]);
+  alpha  = atof(argv[7]);
+  beta   = atof(argv[8]);
   
-  mmin     = atoi(argv[9]);
-  mmax     = atoi(argv[10]);
-  mstep    = atoi(argv[11]);
+  mmin   = atoi(argv[9]);
+  mmax   = atoi(argv[10]);
+  mstep  = atoi(argv[11]);
   
-  nmin     = atoi(argv[12]);
-  nmax     = atoi(argv[13]);
-  nstep    = atoi(argv[14]);
+  nmin   = atoi(argv[12]);
+  nmax   = atoi(argv[13]);
+  nstep  = atoi(argv[14]);
   
-  kmin     = atoi(argv[15]);
-  kmax     = atoi(argv[16]);
-  kstep    = atoi(argv[17]);
+  kmin   = atoi(argv[15]);
+  kmax   = atoi(argv[16]);
+  kstep  = atoi(argv[17]);
   
-  visual   = atoi(argv[18]);
-  tmin     = atof(argv[19]);
+  visual = atoi(argv[18]);
+  tmin   = atof(argv[19]);
   
-  test     = argv[20][0];
+  test   = argv[20][0];
 
-  MR       = atoi(argv[21]);
-  NR       = atoi(argv[22]);
+  MR     = atoi(argv[21]);
+  NR     = atoi(argv[22]);
+  KR     = 1;
 
   FILE *fd_csv;
   
   testConfig_t* testConf = NULL;
   unsigned int cnn_num = 1;
   unsigned int cnn_enable = 0;
-  
+ 
+  ukernel_SIMD ukr;
+
   if ((mmax == 0) && (nmax == 0) && (kmax == 0)) {
     testConf = new_CNN_Test_Config(argv[23]);
     cnn_num = testConf->cnn_num;
     cnn_enable = 1;
   }
 
-  // TODO: Select correct micro-kernel from generator
-  //gemm_ukr_ft gemm_kernel = bli_cntx_get_l3_vir_ukr_dt(BLIS_FLOAT, BLIS_GEMM_UKR, cntx);
+  if (MR == 4 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x4;
+  } else if (MR == 4 && NR == 8) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x8;
+  } else if (MR == 4 && NR == 12) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x12;
+  } else if (MR == 4 && NR == 16) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x16;
+  } else if (MR == 4 && NR == 20) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x20;
+  } else if (MR == 8 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_8x4;
+  } else if (MR == 8 && NR == 8) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_8x8;
+  } else if (MR == 8 && NR == 12) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_8x12;
+  } else if (MR == 12 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_12x4;
+  } else if (MR == 12 && NR == 8) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_12x8;
+  } else if (MR == 16 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_16x4;
+  } else if (MR == 20 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_20x4;
+  } else {
+    printf("ERROR: Unsupported micro-kernel combination\n");
+    exit(-1);
+  }
+  
 
   fd_csv = fopen(argv[24], "w");
   fprintf(fd_csv, "#l;m;n;k;Gflops\n");
@@ -170,14 +205,12 @@ int main(int argc, char *argv[]) {
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] Mode Selected: ");
     printf(" %sGEMM Family%s                                                                         |\n", COLOR_BOLDWHITE, COLOR_RESET);
-  #endif
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] SIMD Selected: ");
   printf(" %sARMv8%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
-  #endif
   //----------------------------------------------------------------------------------------------------------------------
-  printf(" |  [*] Dataset      :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[21], COLOR_RESET);
-  printf(" |  [*] Output       :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[22], COLOR_RESET);
+  printf(" |  [*] Dataset      :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[23], COLOR_RESET);
+  printf(" |  [*] Output       :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[24], COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
     printf(" |  [*] MR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, MR, COLOR_RESET);
     printf(" |  [*] NR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, NR, COLOR_RESET);
@@ -214,15 +247,14 @@ int main(int argc, char *argv[]) {
     //------------------------------------------------------------------------
     int mc_tmp, nc_tmp, kc_tmp;
     get_optim_mc_nc_kc(sizeof(DTYPE), mmax, nmax, kmax, MR, NR, &mc_tmp, &nc_tmp, &kc_tmp);
-    
+   
+    mc_tmp = mc_tmp / MR * MR;
+    nc_tmp = nc_tmp / NR * NR;
+     
     mc = (size_t)mc_tmp;
     nc = (size_t)nc_tmp;
     kc = (size_t)kc_tmp;
 
-    //MC, NC, KC: BLIS Optims
-    //mc = 144;
-    //nc = 4080;
-    //kc = 256;
     //-------------------------------------------------------------------------
     
     /*    
@@ -312,7 +344,7 @@ int main(int argc, char *argv[]) {
 	  while ( time <= tmin ) {
 	    nreps++;
 	    gemm_blis_B3A2C0( orderA, orderB, orderC, transA, transB, m, n, k, alpha, A, ldA, B, ldB, beta, C, ldC, 
-	    		      Ac, Bc, mc, nc, kc, NULL, MR, NR);
+	    		      Ac, Bc, mc, nc, kc, ukr, MR, NR);
 	    t2   = dclock();
 	    time = ( t2 > t1 ? t2 - t1 : 0.0 );
 	  }

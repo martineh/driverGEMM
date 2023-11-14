@@ -46,13 +46,15 @@ inline void gemm_ukernel_Cresident_SIMD_8x8(int mr, int nr, int kc, DTYPE *Ar, i
 //   - Br packed by rows, with leading dimension nr = 8
 
   if (kc == 0) return;
+  const int MR = 8; 
+  const int NR = 8; 
   int       i, j, pr, baseA = 0, baseB = 0, ldCt = MR, Amr, Bnr;
   vregister Cr0_0, Cr0_1, Cr0_2, Cr0_3, Cr0_4, Cr0_5, Cr0_6, Cr0_7, 
             Cr1_0, Cr1_1, Cr1_2, Cr1_3, Cr1_4, Cr1_5, Cr1_6, Cr1_7, 
             A0_0, A0_1, A0_2, A0_3, A0_4, A0_5, A0_6, A0_7, 
             A1_0, A1_1, A1_2, A1_3, A1_4, A1_5, A1_6, A1_7;
   vregister ar0, ar1, br0, br1; 
-  DTYPE zero = 0.0, one = 1.0, Ctmp[MR * NR], *Aptr, *Bptr; 
+  DTYPE zero = 0.0, Ctmp[MR * NR], *Aptr, *Bptr; 
 
 
   vinit(Cr0_0); vinit(Cr0_1); vinit(Cr0_2); vinit(Cr0_3); vinit(Cr0_4); vinit(Cr0_5); vinit(Cr0_6); vinit(Cr0_7); 
