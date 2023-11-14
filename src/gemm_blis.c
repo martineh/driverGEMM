@@ -31,21 +31,21 @@
 
 #include "gemm_blis.h"
 
-
+/*
 void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
                        char transA, char transB, 
                        size_t m, size_t n, size_t k, 
-                       DTYPE alpha, DTYPE *A, size_t ldA, 
-		                    DTYPE *B, size_t ldB, 
-		       DTYPE beta,  DTYPE *C, size_t ldC, 
-		       DTYPE *Ac, DTYPE *Bc, 
+                       float alpha, float *A, size_t ldA, 
+		                    float *B, size_t ldB, 
+		       float beta,  float *C, size_t ldC, 
+		       float *Ac, float *Bc, 
                        size_t MC, size_t NC, size_t KC,
 		       ukernel_SIMD ukernel, int MR, int NR) {
 
 
   size_t    ic, jc, pc, mc, nc, kc, ir, jr, mr, nr; 
-  DTYPE  zero = 0.0, one = 1.0, betaI; 
-  DTYPE  *Aptr, *Bptr, *Cptr;
+  float  zero = 0.0, one = 1.0, betaI; 
+  float  *Aptr, *Bptr, *Cptr;
 
   #if defined(CHECK)
   #include "check_params.h"
@@ -116,9 +116,10 @@ void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
   }
 
 }
+*/
 
 void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, float *A, void *_ldA, float *B,
-		  void *ldB, float *_beta, float *C, void *_ldC) {
+		  void *_ldB, float *_beta, float *C, void *_ldC) {
 
   char orderA = 'C';
   char orderB = 'C';
@@ -126,26 +127,42 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
   char transA = 'N';
   char transB = 'N';
 
-  size_t m = (size_t)(*_m);
-  size_t n = (size_t)(*_n);
-  size_t k = (size_t)(*_k);
+  size_t m = *((size_t *)_m);
+  size_t n = *((size_t *)_n);
+  size_t k = *((size_t *)_k);
 
-  size_t ldA = (size_t)(*_ldA);
-  size_t ldB = (size_t)(*_ldB);
-  size_t ldC = (size_t)(*_ldC);
+  size_t ldA = *((size_t *)_ldA);
+  size_t ldB = *((size_t *)_ldB);
+  size_t ldC = *((size_t *)_ldC);
  
   float beta  = (float)(*_beta); 
   float alpha = (float)(*_alpha); 
 
   int MR = 8;
   int NR = 12;
+    
+  //------------------------------------------------------------------------
+  // MODEL VALUES: MC, NC and KC
+  //------------------------------------------------------------------------
+  int mc_tmp, nc_tmp, kc_tmp;
+  get_optim_mc_nc_kc(sizeof(float), m, n, k, MR, NR, &mc_tmp, &nc_tmp, &kc_tmp);
+   
+  mc_tmp = mc_tmp / MR * MR;
+  nc_tmp = nc_tmp / NR * NR;
+     
+  size_t MC = (size_t)mc_tmp;
+  size_t NC = (size_t)nc_tmp;
+  size_t KC = (size_t)kc_tmp;
+	   
+  //-------------------------------------------------------------------------
 
-  float *Ac = (DTYPE *)malloc((MR+mc)*kc*sizeof(float));
-  float *Bc = (DTYPE *)malloc(kc*(NR+nc)*sizeof(float));
+  float *Ac = (float *)malloc((MR + MC) * KC  * sizeof(float));
+  float *Bc = (float *)malloc(KC * ( NR + NC) * sizeof(float));
 
-  size_t    ic, jc, pc, mc, nc, kc, ir, jr, mr, nr; 
-  DTYPE  zero = 0.0, one = 1.0, betaI; 
-  DTYPE  *Aptr, *Bptr, *Cptr;
+  int mr, nr;
+  size_t ic, jc, pc,  ir, jr, mc, nc, kc; 
+  float zero = 0.0, one = 1.0, betaI; 
+  float *Aptr, *Bptr, *Cptr;
 
   // Quick return if possible
   if ( (m==0)||(n==0)||(((alpha==zero)||(k==0))&&(beta==one)) )
@@ -167,7 +184,7 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
         Bptr = &Brow(jc,pc);
       
       pack_CB( orderB, transB, kc, nc, Bptr, ldB, Bc, NR);
-      
+
       if ( pc==0 )
         betaI = beta;
       else
@@ -201,8 +218,8 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
               Cptr = &Crow(ic+ir,jc+jr);
 
 	    //ukernel(mr, nr, kc, &Ac[ir*kc], ldA, &Bc[jr*kc], ldB, Cptr, ldC, orderC, betaI);
-	    gemm_base_Cresident( orderC, mc, nc, kc, alpha, &Ac[ir*kc], ldA, 
-                                 &Bc[jr*kc], ldB, betaI, Cptr, ldC );
+	    gemm_base_Cresident( orderC, mr, nr, kc, alpha, &Ac[ir*kc], MR, 
+                               &Bc[jr*kc], NR, betaI, Cptr, ldC );
 
           }
 	  
@@ -217,7 +234,7 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
 }
 
 
-void pack_RB( char orderM, char transM, int mc, int nc, DTYPE *M, int ldM, DTYPE *Mc, int RR ){
+void pack_RB( char orderM, char transM, int mc, int nc, float *M, int ldM, float *Mc, int RR ){
 /*
   BLIS pack for M-->Mc
 */
@@ -252,7 +269,7 @@ void pack_RB( char orderM, char transM, int mc, int nc, DTYPE *M, int ldM, DTYPE
   }
 }
 
-void pack_CB( char orderM, char transM, int mc, int nc, DTYPE *M, int ldM, DTYPE *Mc, int RR ){
+void pack_CB( char orderM, char transM, int mc, int nc, float *M, int ldM, float *Mc, int RR ){
 /*
   BLIS pack for M-->Mc
 */
@@ -287,15 +304,15 @@ void pack_CB( char orderM, char transM, int mc, int nc, DTYPE *M, int ldM, DTYPE
 }
 
 void gemm_base_Cresident( char orderC, int m, int n, int k, 
-                          DTYPE alpha, DTYPE *A, int ldA, 
-                                       DTYPE *B, int ldB, 
-                          DTYPE beta,  DTYPE *C, int ldC ){
+                          float alpha, float *A, int ldA, 
+                                       float *B, int ldB, 
+                          float beta,  float *C, int ldC ){
 /*
   Baseline micro-kernel 
   Replace with specialized micro-kernel where C-->m x n is resident in registers
 */
   int    i, j, p;
-  DTYPE  zero = 0.0, tmp;
+  float  zero = 0.0, tmp;
 
   for ( j=0; j<n; j++ )
     for ( i=0; i<m; i++ ) {

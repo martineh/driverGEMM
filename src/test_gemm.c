@@ -35,12 +35,11 @@
 #include <math.h>
 #include <string.h>
 
-#include "ARMv8/microkernel.h"
-#include "dtypes.h"
+//#include "ARMv8/microkernel.h"
+//#include "dtypes.h"
 #include "gemm_blis.h"
 #include "inutils.h"
 #include "colors.h"
-#include "modelLevel/model_level.h"
 
 #define dabs(a)      ( (a) > 0.0 ? (a) : -(a) )
 
@@ -57,11 +56,12 @@
 #define Crow(a1,a2)  C[ (a1)*(ldC)+(a2) ]
 #define Cgrow(a1,a2) Cg[ (a1)*(ldC)+(a2) ]
 
-extern int    print_matrix( char *, char, size_t, size_t, DTYPE *, size_t );
-extern int    generate_matrix( char, size_t, size_t, DTYPE *, size_t );
+extern int    print_matrix( char *, char, size_t, size_t, float *, size_t );
+extern int    generate_matrix( char, size_t, size_t, float *, size_t );
 extern double dclock();
-void gemm( char, char, char, char, char, size_t, size_t, size_t, DTYPE, DTYPE *, int, DTYPE *, int, DTYPE, DTYPE *, int );
+void gemm( char, char, char, char, char, size_t, size_t, size_t, float, float *, int, float *, int, float, float *, int );
 
+/*
 void *my_aligned_alloc(size_t alignment, size_t size, int zero) {
     size_t request_size = size + alignment;
     char* buf = (char*)(zero ? calloc(1, request_size) : malloc(request_size));
@@ -76,40 +76,42 @@ void *my_aligned_alloc(size_t alignment, size_t size, int zero) {
 
     return (void*)ret;
 }
+*/
 
 /* Free memory allocated with aligned_alloc */
+/*
 void my_aligned_free(void* aligned_ptr) {
     int offset = *(((char*)aligned_ptr) - 1);
     free(((char*)aligned_ptr) - offset);
 }
+*/
 
 int main(int argc, char *argv[]) {
   
   
   char  orderA, orderB, orderC, transA, transB, test;
   char variant[20];
-  DTYPE *A  = NULL, 
+
+  float *A  = NULL, 
 	*B  = NULL, 
 	*C  = NULL, 
-	*Cg = NULL, 
-	*Ac = NULL, 
-	*Bc = NULL, 
-	*Cc = NULL;
-  DTYPE alpha, beta;
+	*Cg = NULL;
+
+  float alpha, beta;
   double t1, t2, time, tmin, error, nrm, tmp, errorthd, flops, GFLOPS;
   size_t i, j, nreps, 
          visual, ldA, ldB, ldC;
   size_t m, n, k, mc, nc, kc, mmin, mmax, mstep, nmin, nmax, nstep, kmin, kmax, kstep; 
 
-  int KR, MR, NR;
+  int MR, NR;
 
-  #if defined(FP16)
-    errorthd = 1.0e-3;
-  #elif defined(FP32)
-    errorthd = 1.0e-6;
-  #elif defined(FP64)
-    errorthd = 1.0e-14;
-  #endif
+  //#if defined(FP16)
+  //errorthd = 1.0e-3;
+  //#elif defined(FP32)
+  errorthd = 1.0e-6;
+  //#elif defined(FP64)
+  //errorthd = 1.0e-14;
+  //#endif
 
 
   sprintf(variant, "FAMILY");  
@@ -143,7 +145,6 @@ int main(int argc, char *argv[]) {
 
   MR     = atoi(argv[21]);
   NR     = atoi(argv[22]);
-  KR     = 1;
 
   FILE *fd_csv;
   
@@ -151,14 +152,12 @@ int main(int argc, char *argv[]) {
   unsigned int cnn_num = 1;
   unsigned int cnn_enable = 0;
  
-  ukernel_SIMD ukr;
+  //ukernel_SIMD ukr;
+  testConf = new_CNN_Test_Config(argv[23]);
+  cnn_num = testConf->cnn_num;
+  cnn_enable = 1;
 
-  if ((mmax == 0) && (nmax == 0) && (kmax == 0)) {
-    testConf = new_CNN_Test_Config(argv[23]);
-    cnn_num = testConf->cnn_num;
-    cnn_enable = 1;
-  }
-
+  /*
   if (MR == 4 && NR == 4) {
     (ukr) = gemm_ukernel_Cresident_SIMD_4x4;
   } else if (MR == 4 && NR == 8) {
@@ -187,7 +186,7 @@ int main(int argc, char *argv[]) {
     printf("ERROR: Unsupported micro-kernel combination\n");
     exit(-1);
   }
-  
+  */
 
   fd_csv = fopen(argv[24], "w");
   fprintf(fd_csv, "#l;m;n;k;Gflops\n");
@@ -207,7 +206,8 @@ int main(int argc, char *argv[]) {
     printf(" %sGEMM Family%s                                                                         |\n", COLOR_BOLDWHITE, COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] SIMD Selected: ");
-  printf(" %sARMv8%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
+  //printf(" %sARMv8%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
+  printf(" %sBASE%s                                                                               |\n", COLOR_BOLDWHITE, COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] Dataset      :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[23], COLOR_RESET);
   printf(" |  [*] Output       :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[24], COLOR_RESET);
@@ -227,56 +227,29 @@ int main(int argc, char *argv[]) {
 
 
   for (unsigned int cnn_i = 0; cnn_i < cnn_num; cnn_i++) {
-    if (cnn_enable) {
-    
-      mmin  = testConf->cnn[cnn_i].mmin;
-      mmax  = testConf->cnn[cnn_i].mmax;
-      mstep = testConf->cnn[cnn_i].mstep;
+    mmin  = testConf->cnn[cnn_i].mmin;
+    mmax  = testConf->cnn[cnn_i].mmax;
+    mstep = testConf->cnn[cnn_i].mstep;
       
-      nmin  = testConf->cnn[cnn_i].nmin;
-      nmax  = testConf->cnn[cnn_i].nmax;
-      nstep = testConf->cnn[cnn_i].nstep;
+    nmin  = testConf->cnn[cnn_i].nmin;
+    nmax  = testConf->cnn[cnn_i].nmax;
+    nstep = testConf->cnn[cnn_i].nstep;
       
-      kmin  = testConf->cnn[cnn_i].kmin;
-      kmax  = testConf->cnn[cnn_i].kmax;
-      kstep = testConf->cnn[cnn_i].kstep;
-    }
+    kmin  = testConf->cnn[cnn_i].kmin;
+    kmax  = testConf->cnn[cnn_i].kmax;
+    kstep = testConf->cnn[cnn_i].kstep;
     
-    //------------------------------------------------------------------------
-    // MODEL VALUES: MC, NC and KC
-    //------------------------------------------------------------------------
-    int mc_tmp, nc_tmp, kc_tmp;
-    get_optim_mc_nc_kc(sizeof(DTYPE), mmax, nmax, kmax, MR, NR, &mc_tmp, &nc_tmp, &kc_tmp);
+    A = (float *) malloc( mmax*kmax*sizeof(float) );   
+    B = (float *) malloc( kmax*nmax*sizeof(float) );   
+    C = (float *) malloc( mmax*nmax*sizeof(float) );
+    
+    //Ac = (float *) malloc( (MR+mc)*(KR+kc)*sizeof(float) );   
+    //Bc = (float *) malloc( (KR+kc)*(NR+nc)*sizeof(float) );   
+    //Cc = (float *) malloc( (MR+mc)*(NR+nc)*sizeof(float) );
    
-    mc_tmp = mc_tmp / MR * MR;
-    nc_tmp = nc_tmp / NR * NR;
-     
-    mc = (size_t)mc_tmp;
-    nc = (size_t)nc_tmp;
-    kc = (size_t)kc_tmp;
-
-    //-------------------------------------------------------------------------
-    
-    /*    
-    A = (DTYPE *) malloc( mmax*kmax*sizeof(DTYPE) );   
-    B = (DTYPE *) malloc( kmax*nmax*sizeof(DTYPE) );   
-    C = (DTYPE *) malloc( mmax*nmax*kmax*sizeof(DTYPE) );
-    
-    Ac = (DTYPE *) malloc( (MR+mc)*(KR+kc)*sizeof(DTYPE) );   
-    Bc = (DTYPE *) malloc( (KR+kc)*(NR+nc)*sizeof(DTYPE) );   
-    Cc = (DTYPE *) malloc( (MR+mc)*(NR+nc)*sizeof(DTYPE) );
-    */
-   
-    A  = (DTYPE *)my_aligned_alloc(32, mmax*kmax*sizeof(DTYPE),      1);   
-    B  = (DTYPE *)my_aligned_alloc(32, kmax*nmax*sizeof(DTYPE),      1);   
-    C  = (DTYPE *)my_aligned_alloc(32, mmax*nmax*sizeof(DTYPE), 1);
-
-    Ac = (DTYPE *)my_aligned_alloc(32, (MR+mc)*(KR+kc)*sizeof(DTYPE), 1);
-    Bc = (DTYPE *)my_aligned_alloc(32, (KR+kc)*(NR+nc)*sizeof(DTYPE), 1);
-    Cc = (DTYPE *)my_aligned_alloc(32, (MR+mc)*(NR+nc)*sizeof(DTYPE), 1);
     
     if ( test=='T' )
-      Cg = (DTYPE *) malloc(mmax*nmax*sizeof(DTYPE));   
+      Cg = (float *) malloc(mmax*nmax*sizeof(float));   
     
 
     for ( m=mmin; m<=mmax; m+=mstep ){
@@ -337,14 +310,18 @@ int main(int argc, char *argv[]) {
 	    print_matrix( "Ci", orderC, m, n, C, ldC );
 	  }
 	  
-	  
+
 	  time  = 0.0; 
 	  t1    = dclock();
 	  nreps = 0;
 	  while ( time <= tmin ) {
 	    nreps++;
-	    gemm_blis_B3A2C0( orderA, orderB, orderC, transA, transB, m, n, k, alpha, A, ldA, B, ldB, beta, C, ldC, 
-	    		      Ac, Bc, mc, nc, kc, ukr, MR, NR);
+	    sgemm_family("No transpose", "No transpose", (void *)&m, (void *)&n, (void *)&k, &alpha, A, (void *)&ldA, B,
+                        (void *)&ldB, &beta, C, (void *)&ldC);
+
+	     //gemm_blis_B3A2C0( orderA, orderB, orderC, transA, transB, m, n, k, alpha, A, ldA, B, ldB, beta, C, ldC, 
+	    //		      Ac, Bc, mc, nc, kc, ukr, MR, NR);
+
 	    t2   = dclock();
 	    time = ( t2 > t1 ? t2 - t1 : 0.0 );
 	  }
@@ -414,12 +391,13 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    my_aligned_free(A);
-    my_aligned_free(B);
-    my_aligned_free(C);
-    my_aligned_free(Ac);
-    my_aligned_free(Bc);
-    my_aligned_free(Cc);
+    free(A);
+    free(B);
+    free(C);
+
+    //my_aligned_free(Ac);
+    //my_aligned_free(Bc);
+    //my_aligned_free(Cc);
   
     if ( test=='T' )
       free(Cg);
@@ -433,12 +411,12 @@ int main(int argc, char *argv[]) {
 void gemm( char orderA, char orderB, char orderC, 
            char transA, char transB, 
            size_t m, size_t n, size_t k, 
-           DTYPE alpha, DTYPE *A, int ldA, 
-	                DTYPE *B, int ldB, 
-           DTYPE beta,  DTYPE *C, int ldC ){
+           float alpha, float *A, int ldA, 
+	                float *B, int ldB, 
+           float beta,  float *C, int ldC ){
 
    size_t    ic, jc, i, j, p;
-   DTYPE  zero = 0.0, one = 1.0, tmp;
+   float  zero = 0.0, one = 1.0, tmp;
 
    // Quick return if possible
   if ( (m==0)||(n==0) || (((alpha==zero) || (k==0)) && (beta==one)) )

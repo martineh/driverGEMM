@@ -38,7 +38,7 @@
 
 #include "dtypes.h"
 
-void generate_matrix( char orderM, size_t m, size_t n, DTYPE *M, size_t ldM )
+void generate_matrix( char orderM, size_t m, size_t n, float *M, size_t ldM )
 {
 /*
  * Generate a matrix with random entries
@@ -54,23 +54,23 @@ void generate_matrix( char orderM, size_t m, size_t n, DTYPE *M, size_t ldM )
     for ( j=0; j<n; j++ )
       for ( i=0; i<m; i++ )
 #if defined(FP16)
-        Mcol(i,j) = ((((DTYPE) j*m+i)/m)/n);
+        Mcol(i,j) = ((((float) j*m+i)/m)/n);
 #else
-        Mcol(i,j) = ((DTYPE) rand())/RAND_MAX + 1.0;
-        // Mcol(i,j) = ((int) (10.0 * ((DTYPE) rand())/RAND_MAX));
+        Mcol(i,j) = ((float) rand())/RAND_MAX + 1.0;
+        // Mcol(i,j) = ((int) (10.0 * ((float) rand())/RAND_MAX));
 #endif
   }else
     for ( j=0; j<n; j++ )
       for ( i=0; i<m; i++ )
 #if defined(FP16)
-        Mrow(i,j) = ((((DTYPE) j*m+i)/m)/n);
+        Mrow(i,j) = ((((float) j*m+i)/m)/n);
 #else
-        Mrow(i,j) = ((DTYPE) rand())/RAND_MAX + 1.0;
-        // Mrow(i,j) = ((int) (10.0 * ((DTYPE) rand())/RAND_MAX));
+        Mrow(i,j) = ((float) rand())/RAND_MAX + 1.0;
+        // Mrow(i,j) = ((int) (10.0 * ((float) rand())/RAND_MAX));
 #endif
 }
 /*===========================================================================*/
-void print_matrix( char *name, char orderM, size_t m, size_t n, DTYPE *M, size_t ldM )
+void print_matrix( char *name, char orderM, size_t m, size_t n, float *M, size_t ldM )
 {
 /*
  * Print a matrix to standard output
@@ -85,23 +85,23 @@ void print_matrix( char *name, char orderM, size_t m, size_t n, DTYPE *M, size_t
   if ( orderM=='C' )
     for ( j=0; j<n; j++ )
       for ( i=0; i<m; i++ )
-#if defined(FP16)
-        printf( "%s[%zu,%zu] = %8.2e;\n", name, i, j, ((double) Mcol(i,j)) );
-#elif defined(FP32)
+//#if defined(FP16)
+//        printf( "%s[%zu,%zu] = %8.2e;\n", name, i, j, ((double) Mcol(i,j)) );
+//#elif defined(FP32)
         printf( "%s[%zu,%zu] = %14.8e;\n", name, i, j, ((double) Mcol(i,j)) );
-#elif defined(FP64)
-        printf( "%s[%zu,%zu] = %22.16e;\n", name, i, j, ((double) Mcol(i,j)) );
-#endif
+//#elif defined(FP64)
+//        printf( "%s[%zu,%zu] = %22.16e;\n", name, i, j, ((double) Mcol(i,j)) );
+//#endif
   else
     for ( j=0; j<n; j++ )
       for ( i=0; i<m; i++ )
-#if defined(FP16)
-        printf( "%s[%zu,%zu] = %8.2e;\n", name, i, j, ((double) Mrow(i,j)) );
-#elif defined(FP32)
+//#if defined(FP16)
+//        printf( "%s[%zu,%zu] = %8.2e;\n", name, i, j, ((double) Mrow(i,j)) );
+//#elif defined(FP32)
         printf( "%s[%zu,%zu] = %14.8e;\n", name, i, j, ((double) Mrow(i,j)) );
-#elif defined(FP64)
-        printf( "%s[%zu,%zu] = %22.16e;\n", name, i, j, ((double) Mrow(i,j)) );
-#endif
+//#elif defined(FP64)
+//        printf( "%s[%zu,%zu] = %22.16e;\n", name, i, j, ((double) Mrow(i,j)) );
+//#endif
 }
 /*===========================================================================*/
 double dclock()

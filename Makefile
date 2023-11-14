@@ -19,25 +19,25 @@ vpath %.h ./src
 vpath %.c ./modelLevel
 vpath %.h ./modelLevel
 
-vpath %.c ./src/ARMv8
-vpath %.h ./src/ARMv8
+#vpath %.c ./src/ARMv8
+#vpath %.h ./src/ARMv8
 #------------------------------------------
 
 #------------------------------------------
 #| COMPILER FLAGS                         |
 #------------------------------------------
-DTYPE = -DFP32
+#DTYPE = -DFP32
 MODE  = -DFAMILY
-SIMD  = -DARMv8
-FLAGS = -O3 -march=armv8-a+simd+fp -Wall 
+#SIMD  = -DARMv8
+FLAGS = -O3 -Wall #-march=armv8-a+simd+fp -Wall 
 LIBS  = -lm
 
 OBJ = $(patsubst %, $(OBJDIR)/%, $(_OBJ))
 
-SRC_FILES = $(wildcard ./src/ARMv8/*.c)
-OBJ_FILES = $(patsubst ./src/ARMv8/%.c, $(OBJDIR)/%.o, $(SRC_FILES))
+#SRC_FILES = $(wildcard ./src/ARMv8/*.c)
+#OBJ_FILES = $(patsubst ./src/ARMv8/%.c, $(OBJDIR)/%.o, $(SRC_FILES))
 
-OBJ += $(OBJ_FILES) 
+#OBJ += $(OBJ_FILES) 
 
 OPTFLAGS = $(FLAGS) -DCHECK $(MODE) $(SIMD) $(DTYPE)
 #------------------------------------------
