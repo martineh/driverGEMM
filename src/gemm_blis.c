@@ -117,6 +117,105 @@ void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
 
 }
 
+void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, float *A, void *_ldA, float *B,
+		  void *ldB, float *_beta, float *C, void *_ldC) {
+
+  char orderA = 'C';
+  char orderB = 'C';
+  char orderC = 'C';
+  char transA = 'N';
+  char transB = 'N';
+
+  size_t m = (size_t)(*_m);
+  size_t n = (size_t)(*_n);
+  size_t k = (size_t)(*_k);
+
+  size_t ldA = (size_t)(*_ldA);
+  size_t ldB = (size_t)(*_ldB);
+  size_t ldC = (size_t)(*_ldC);
+ 
+  float beta  = (float)(*_beta); 
+  float alpha = (float)(*_alpha); 
+
+  int MR = 8;
+  int NR = 12;
+
+  float *Ac = (DTYPE *)malloc((MR+mc)*kc*sizeof(float));
+  float *Bc = (DTYPE *)malloc(kc*(NR+nc)*sizeof(float));
+
+  size_t    ic, jc, pc, mc, nc, kc, ir, jr, mr, nr; 
+  DTYPE  zero = 0.0, one = 1.0, betaI; 
+  DTYPE  *Aptr, *Bptr, *Cptr;
+
+  // Quick return if possible
+  if ( (m==0)||(n==0)||(((alpha==zero)||(k==0))&&(beta==one)) )
+    return;
+  
+  for ( jc=0; jc<n; jc+=NC ) {
+    nc = min(n-jc, NC); 
+
+    for ( pc=0; pc<k; pc+=KC ) {
+      kc = min(k-pc, KC); 
+      
+      if ( (transB=='N')&&(orderB=='C') )
+        Bptr = &Bcol(pc,jc);
+      else if ( (transB=='N')&&(orderB=='R') )
+        Bptr = &Brow(pc,jc);
+      else if ( (transB=='T')&&(orderB=='C') )
+        Bptr = &Bcol(jc,pc);
+      else
+        Bptr = &Brow(jc,pc);
+      
+      pack_CB( orderB, transB, kc, nc, Bptr, ldB, Bc, NR);
+      
+      if ( pc==0 )
+        betaI = beta;
+      else
+        betaI = one;
+      
+      for ( ic=0; ic<m; ic+=MC ) {
+        mc = min(m-ic, MC); 
+	
+        if ( (transA=='N')&&(orderA=='C') ){
+          Aptr = &Acol(ic, pc);
+	}else if ( (transA=='N')&&(orderA=='R') ){
+          Aptr = &Arow(ic, pc);
+	}else if ( (transA=='T')&&(orderA=='C') ){
+          Aptr = &Acol(pc, ic);
+	}else{
+          Aptr = &Arow(pc, ic);
+	}
+	
+	//Comment or uncomment for packing or not
+        pack_RB( orderA, transA, mc, kc, Aptr, ldA, Ac, MR);
+	
+        for ( jr=0; jr<nc; jr+=NR ) {
+          nr = min(nc-jr, NR); 
+	  
+          for ( ir=0; ir<mc; ir+=MR ) {
+            mr = min(mc-ir, MR); 
+	    
+            if ( orderC=='C' )
+              Cptr = &Ccol(ic+ir,jc+jr);
+	    else
+              Cptr = &Crow(ic+ir,jc+jr);
+
+	    //ukernel(mr, nr, kc, &Ac[ir*kc], ldA, &Bc[jr*kc], ldB, Cptr, ldC, orderC, betaI);
+	    gemm_base_Cresident( orderC, mc, nc, kc, alpha, &Ac[ir*kc], ldA, 
+                                 &Bc[jr*kc], ldB, betaI, Cptr, ldC );
+
+          }
+	  
+        }
+      }
+    }
+  }
+
+  free(Ac);
+  free(Bc);
+
+}
+
 
 void pack_RB( char orderM, char transM, int mc, int nc, DTYPE *M, int ldM, DTYPE *Mc, int RR ){
 /*

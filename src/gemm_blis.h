@@ -19,6 +19,9 @@
 #define Crow(a1,a2)  C[ (a1)*(ldC)+(a2) ]
 #define Mrow(a1,a2)  M[ (a1)*(ldM)+(a2) ]
 
+void sgemm_family("No transpose", "No transpose", (void *), (void *), (void *), float *, float *, (void *), float *,
+		    (void *), float *, float *, (void *));
+
 void gemm_blis_B3A2C0( char, char, char, char, char, size_t, size_t, size_t, DTYPE, DTYPE *, size_t, DTYPE *, size_t, DTYPE, DTYPE *, size_t, 
 		       DTYPE *, DTYPE *, size_t, size_t, size_t, ukernel_SIMD, int, int);
 
