@@ -156,8 +156,8 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
 	   
   //-------------------------------------------------------------------------
 
-  float *Ac = (float *)malloc((MR + MC) * KC  * sizeof(float));
-  float *Bc = (float *)malloc(KC * ( NR + NC) * sizeof(float));
+  float *Ac = (float *)malloc((MR+MC)*KC * sizeof(float));
+  float *Bc = (float *)malloc(KC*(NR+NC) * sizeof(float));
 
   int mr, nr;
   size_t ic, jc, pc,  ir, jr, mc, nc, kc; 

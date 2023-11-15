@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
   #endif
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] Mode Selected: ");
-    printf(" %sGEMM Family%s                                                                         |\n", COLOR_BOLDWHITE, COLOR_RESET);
+    printf(" %sGEMM Family%s                                                                        |\n", COLOR_BOLDWHITE, COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] SIMD Selected: ");
   //printf(" %sARMv8%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
@@ -212,8 +212,8 @@ int main(int argc, char *argv[]) {
   printf(" |  [*] Dataset      :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[23], COLOR_RESET);
   printf(" |  [*] Output       :  %s%-40s%s                                           |\n", COLOR_BOLDWHITE, argv[24], COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
-    printf(" |  [*] MR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, MR, COLOR_RESET);
-    printf(" |  [*] NR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, NR, COLOR_RESET);
+    printf(" |  [*] MR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, 0, COLOR_RESET);
+    printf(" |  [*] NR           :  %s%-5d%s                                                                              |\n", COLOR_BOLDWHITE, 0, COLOR_RESET);
   printf(" |  [*] Tmin         :  %s%-5.2f%s                                                                              |\n", COLOR_BOLDWHITE, tmin, COLOR_RESET);
   printf(" -----------------------------------------------------------------------------------------------------------\n");
 
