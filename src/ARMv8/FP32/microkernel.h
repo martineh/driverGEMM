@@ -1,5 +1,5 @@
 #include <arm_neon.h>
-#include "../dtypes.h" 
+#include "../../dtypes.h" 
 
 typedef void (*ukernel_SIMD)(int, int, int, DTYPE *, int, DTYPE *, int, DTYPE *, int, char, DTYPE);
 

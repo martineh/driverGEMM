@@ -4,7 +4,7 @@
 #include "dtypes.h"
 
 #include <arm_neon.h>
-#include "ARMv8/microkernel.h"
+#include "ARMv8/FP32/microkernel.h"
 
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))

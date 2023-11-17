@@ -35,7 +35,12 @@
 #include <math.h>
 #include <string.h>
 
-#include "ARMv8/microkernel.h"
+#if FP32
+  #include "ARMv8/FP32/microkernel.h"
+#elif FP64
+  #include "ARMv8/FP64/microkernel.h"
+#endif
+
 #include "dtypes.h"
 #include "gemm_blis.h"
 #include "inutils.h"
@@ -88,6 +93,7 @@ int main(int argc, char *argv[]) {
   
   char  orderA, orderB, orderC, transA, transB, test;
   char variant[20];
+  
   DTYPE *A  = NULL, 
 	*B  = NULL, 
 	*C  = NULL, 
@@ -96,6 +102,7 @@ int main(int argc, char *argv[]) {
 	*Bc = NULL, 
 	*Cc = NULL;
   DTYPE alpha, beta;
+
   double t1, t2, time, tmin, error, nrm, tmp, errorthd, flops, GFLOPS;
   size_t i, j, nreps, 
          visual, ldA, ldB, ldC;
@@ -159,6 +166,7 @@ int main(int argc, char *argv[]) {
     cnn_enable = 1;
   }
 
+  #ifdef FP32
   if (MR == 4 && NR == 4) {
     (ukr) = gemm_ukernel_Cresident_SIMD_4x4;
   } else if (MR == 4 && NR == 8) {
@@ -184,13 +192,62 @@ int main(int argc, char *argv[]) {
   } else if (MR == 20 && NR == 4) {
     (ukr) = gemm_ukernel_Cresident_SIMD_20x4;
   } else {
-    printf("ERROR: Unsupported micro-kernel combination\n");
+    printf("ERROR: Unsupported micro-kernel combination.\n");
     exit(-1);
   }
-  
+  #elif FP64
+
+  if (MR == 2 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x2;
+  } else if (MR == 2 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x4;
+  } else if (MR == 2 && NR == 6) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x6;
+  } else if (MR == 2 && NR == 8) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x8;
+  } else if (MR == 2 && NR == 10) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x10;
+  } else if (MR == 2 && NR == 12) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_2x12;
+  } else if (MR == 4 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x2;
+  } else if (MR == 4 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x4;
+  } else if (MR == 4 && NR == 6) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x6;
+  } else if (MR == 4 && NR == 8) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x8;
+  } else if (MR == 4 && NR == 10) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x10;
+  } else if (MR == 4 && NR == 12) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_4x12;
+  } else if (MR == 6 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_6x2;
+  } else if (MR == 6 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_6x4;
+  } else if (MR == 8 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_8x2;
+  } else if (MR == 8 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_8x4;
+  } else if (MR == 10 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_10x2;
+  } else if (MR == 10 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_10x4;
+  } else if (MR == 12 && NR == 2) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_12x2;
+  } else if (MR == 12 && NR == 4) {
+    (ukr) = gemm_ukernel_Cresident_SIMD_12x4;
+  } else {
+    printf("ERROR: Unsupported micro-kernel combination.\n");
+    exit(-1);
+  }
+  #else
+    printf("ERROR: Unsupported data type.\n");
+    exit(-1);
+  #endif
 
   fd_csv = fopen(argv[24], "w");
-  fprintf(fd_csv, "#l;m;n;k;Gflops\n");
+  fprintf(fd_csv, "#l;m;n;k;Gflops;T(s)\n");
 
   
   printf(" ===========================================================================================================\n");
@@ -199,12 +256,14 @@ int main(int argc, char *argv[]) {
   printf(" |  [*] Data Type    : ");
   #ifdef FP32
     printf(" %sFloat%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
+  #elif  FP64
+    printf(" %sDouble%s                                                                             |\n", COLOR_BOLDWHITE, COLOR_RESET);
   #else
     printf(" %sUnknown%s                                                                            |\n", COLOR_BOLDWHITE, COLOR_RESET);
   #endif
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] Mode Selected: ");
-    printf(" %sGEMM Family%s                                                                         |\n", COLOR_BOLDWHITE, COLOR_RESET);
+    printf(" %sGEMM Family%s                                                                        |\n", COLOR_BOLDWHITE, COLOR_RESET);
   //----------------------------------------------------------------------------------------------------------------------
   printf(" |  [*] SIMD Selected: ");
   printf(" %sARMv8%s                                                                              |\n", COLOR_BOLDWHITE, COLOR_RESET);
@@ -260,7 +319,7 @@ int main(int argc, char *argv[]) {
     /*    
     A = (DTYPE *) malloc( mmax*kmax*sizeof(DTYPE) );   
     B = (DTYPE *) malloc( kmax*nmax*sizeof(DTYPE) );   
-    C = (DTYPE *) malloc( mmax*nmax*kmax*sizeof(DTYPE) );
+    C = (DTYPE *) malloc( mmax*nmax*sizeof(DTYPE) );
     
     Ac = (DTYPE *) malloc( (MR+mc)*(KR+kc)*sizeof(DTYPE) );   
     Bc = (DTYPE *) malloc( (KR+kc)*(NR+nc)*sizeof(DTYPE) );   
@@ -385,8 +444,6 @@ int main(int argc, char *argv[]) {
 	    if (test == 'T')
               print_matrix( "Crf", orderC, m, n, Cg, ldC );
 	  }	  
-	  //printf("-->Results\n");
-	  //printf("   Time         = %12.6e seg.\n", time  );
 	  flops   = 2.0 * m * n * k;
 	  GFLOPS  = flops / (1.0e+9 * time );
 
@@ -406,10 +463,7 @@ int main(int argc, char *argv[]) {
 	      printf("%s    -    %s|", COLOR_RED, COLOR_RESET);   
 
 	  printf("\n");
-	  if (cnn_enable)
-	    fprintf(fd_csv, "%d;%zu;%zu;%zu;%.2e\n", testConf->cnn[cnn_i].layer, m, n, k, GFLOPS);
-	  //else
-	  //fprintf(fd_csv, "%d;%d;%d;%d;%.2e\n", 0, m, n, k, GFLOPS);
+	  fprintf(fd_csv, "%d;%zu;%zu;%zu;%.2e;%.2e\n", testConf->cnn[cnn_i].layer, m, n, k, GFLOPS, time);
 	}
       }
     }
