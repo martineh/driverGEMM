@@ -3,8 +3,9 @@ GEMM Driver
 
 Usage: 
 
- [1] Compile: make
- [2] Execute: ./run_gemm.sh <CNN model> <CSV Output>
+ [1] Select data type from Makefile [FP32 | FP64]
+ [2] Compile: make
+ [3] Execute: ./run_gemm.sh <CNN model> <CSV Output>
 
 
  Usage Example:
