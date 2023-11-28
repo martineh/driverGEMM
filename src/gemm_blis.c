@@ -118,14 +118,14 @@ void gemm_blis_B3A2C0( char orderA, char orderB, char orderC,
 }
 */
 
-void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, float *A, void *_ldA, float *B,
+void sgemm_family(char *_transA, char *_transB, void *_m, void *_n, void *_k, float *_alpha, float *A, void *_ldA, float *B,
 		  void *_ldB, float *_beta, float *C, void *_ldC) {
 
   char orderA = 'C';
   char orderB = 'C';
   char orderC = 'C';
-  char transA = 'N';
-  char transB = 'N';
+  char transA = _transA[0];
+  char transB = _transB[0];
 
   size_t m = *((size_t *)_m);
   size_t n = *((size_t *)_n);
@@ -138,8 +138,8 @@ void sgemm_family(char *, char *, void *_m, void *_n, void *_k, float *_alpha, f
   float beta  = (float)(*_beta); 
   float alpha = (float)(*_alpha); 
 
-  int MR = 8;
-  int NR = 12;
+  int MR = 4;
+  int NR = 4;
     
   //------------------------------------------------------------------------
   // MODEL VALUES: MC, NC and KC
