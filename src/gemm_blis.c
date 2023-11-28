@@ -124,8 +124,12 @@ void sgemm_family(char *_transA, char *_transB, void *_m, void *_n, void *_k, fl
   char orderA = 'C';
   char orderB = 'C';
   char orderC = 'C';
-  char transA = _transA[0];
-  char transB = _transB[0];
+
+  char transA = 'T'; 
+  char transB = 'T'; 
+  
+  if (_transA[0] == 'N') transA='N';
+  if (_transB[0] == 'N') transB='N';
 
   size_t m = *((size_t *)_m);
   size_t n = *((size_t *)_n);
